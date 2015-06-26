@@ -1,0 +1,13 @@
+Instructions to run the server-
+gem install redis
+ruby main.rb
+
+Instructions to test using rspec-
+gem install rspec
+rspec spec_test.rb
+
+==============================================
+
+main.rb contains the main driver file 
+keyserver.rb contains the KeyServer class
+spect_test.rb contains the rspec tests
