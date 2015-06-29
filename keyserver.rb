@@ -2,7 +2,7 @@ require 'securerandom'
 require 'redis'
 
 #set - UNBLOCKED
-#list - BLOCKED
+#sorted set - BLOCKED
 
 class KeyServer
 
@@ -16,38 +16,41 @@ class KeyServer
     if random_key.nil?
       "Key Generation failed"
     end
-    @redis.setex(random_key,300,Time.now) 
+    @redis.setex(random_key,300,Time.now)
     @redis.sadd('UNBLOCKED',random_key)
     "Key Generated"
   end
 
 
-  def get #O(1)
+  def get #O(logn)
     key = @redis.spop('UNBLOCKED')
     if key.nil?
-      key = key_from_blocked  
+      key = key_from_blocked
+      if key.nil?
+        "No Key yet"
+      end
     else
       @redis.set(key,Time.now)
-      @redis.lpush('BLOCKED',key) 
+      @redis.zadd('BLOCKED',@redis.get(key).to_f,key)
     end
     key
   end
 
-  def unblock(key) #if amortised with all operations O(1) else O(n) 
+  def unblock(key) #O(logn)
     if @redis.exists(key)
-      @redis.lrem('BLOCKED',1,key) #O(n)
-      @redis.sadd('UNBLOCKED',key) #(1)
+      @redis.zrem('BLOCKED',key)
+      @redis.sadd('UNBLOCKED',key)
       "Key unblocked"
     else
       "Key not exists"
     end
   end
 
-  def delete(key) #if amortised with all operations O(1) else O(n)
+  def delete(key) #O(logn)
     if @redis.exists(key)
       if @redis.del(key)==1
-          @redis.srem('UNBLOCKED',key) #O(1) 
-          @redis.lrem('BLOCKED',1,key) #O(n)
+          @redis.srem('UNBLOCKED',key)
+          @redis.zrem('BLOCKED',key)
           "Key deleted"
       else
         "Key unable to delete"
@@ -68,19 +71,18 @@ class KeyServer
   end
 
 
-  def key_from_blocked #O(1)
-    temp_key = @redis.rpop('BLOCKED')
+  def key_from_blocked #O(logn)
+    temp_key = @redis.zremrangebyrank('BLOCKED',0,0) # pop last from sorted set
 
     if temp_key.nil?
       nil
     else
       temp_key_time = @redis.get(temp_key)
       if (Time.parse(temp_key_time)-Time.now).abs >=60
-        @redis.lpush('BLOCKED',temp_key)
-        @redis.set(temp_key,Time.now)
+        @redis.sadd('UNBLOCKED',temp_key)
         temp_key
       else
-        @redis.rpush('BLOCKED',temp_key)
+        @redis.zadd('BLOCKED',@redis.get(temp_key).to_f,temp_key) #push again
         nil
       end
     end
