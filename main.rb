@@ -9,7 +9,8 @@ set :port, 9830
 
 redis = Redis.new
 redis.flushall
-key_server = KeyServer.new
+key_server = KeyServer.new(redis)
+
 
 get '/' do
   "KeyServer Started"
@@ -17,28 +18,28 @@ end
 
 
 get '/generate' do
-  key_server.generate(redis)
+  key_server.generate
 end
 
 
 get '/get' do
-  key = key_server.get(redis)
+  key = key_server.get
   key
 end
 
 
 get '/unblock/:key' do
-  key_server.unblock(redis,params['key'])
+  key_server.unblock(params['key'])
 end
 
 
 get '/delete/:key' do
-  key_server.delete(redis,params['key'])
+  key_server.delete(params['key'])
 end
 
 
 get '/keep_alive/:key' do
-  key_server.keep_alive(redis,params['key'])
+  key_server.keep_alive(params['key'])
 end
 
 
