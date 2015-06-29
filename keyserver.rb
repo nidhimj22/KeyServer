@@ -17,15 +17,15 @@ class KeyServer
       "Key Generation failed"
     end
     @redis.setex(random_key,300,Time.now) 
-    @redis.sadd('UNBLOCKED',random_key) #unblocked set (unsorted set)
+    @redis.sadd('UNBLOCKED',random_key)
     "Key Generated"
   end
 
 
-  def get #O()
+  def get #O(1)
     key = @redis.spop('UNBLOCKED')
     if key.nil?
-      key = key_from_blocked #amortized O(1) complexity
+      key = key_from_blocked  
     else
       @redis.set(key,Time.now)
       @redis.lpush('BLOCKED',key) 
@@ -33,21 +33,21 @@ class KeyServer
     key
   end
 
-  def unblock(key)
+  def unblock(key) #if amortised with all operations O(1) else O(n) 
     if @redis.exists(key)
-      @redis.lrem('BLOCKED',1,key)
-      @redis.sadd('UNBLOCKED',key)
+      @redis.lrem('BLOCKED',1,key) #O(n)
+      @redis.sadd('UNBLOCKED',key) #(1)
       "Key unblocked"
     else
       "Key not exists"
     end
   end
 
-  def delete(key)
+  def delete(key) #if amortised with all operations O(1) else O(n)
     if @redis.exists(key)
       if @redis.del(key)==1
-          @redis.srem('UNBLOCKED',key) 
-          @redis.lrem('BLOCKED',1,key)
+          @redis.srem('UNBLOCKED',key) #O(1) 
+          @redis.lrem('BLOCKED',1,key) #O(n)
           "Key deleted"
       else
         "Key unable to delete"
@@ -58,7 +58,7 @@ class KeyServer
   end
 
 
-  def keep_alive(key)
+  def keep_alive(key) #O(1)
     if @redis.exists(key)
        @redis.setex(key,300,Time.now)
        "Key life extended"
@@ -68,7 +68,7 @@ class KeyServer
   end
 
 
-  def key_from_blocked
+  def key_from_blocked #O(1)
     temp_key = @redis.rpop('BLOCKED')
 
     if temp_key.nil?
