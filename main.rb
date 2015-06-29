@@ -24,7 +24,10 @@ end
 
 get '/get' do
   key = key_server.get
-  key
+  if key.nil?
+    "Wait No Key got"
+  end
+    key
 end
 
 

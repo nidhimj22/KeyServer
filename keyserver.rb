@@ -17,6 +17,7 @@ class KeyServer
       "Key Generation failed"
     end
     @redis.setex(random_key,300,Time.now)
+    @redis.set(random_key,Time.now)
     @redis.sadd('UNBLOCKED',random_key)
     "Key Generated"
   end
@@ -27,7 +28,7 @@ class KeyServer
     if key.nil?
       key = key_from_blocked
       if key.nil?
-        "No Key yet"
+        nil
       end
     else
       @redis.set(key,Time.now)
@@ -40,6 +41,7 @@ class KeyServer
     if @redis.exists(key)
       @redis.zrem('BLOCKED',key)
       @redis.sadd('UNBLOCKED',key)
+      @redis.set(key,Time.now)
       "Key unblocked"
     else
       "Key not exists"
@@ -49,8 +51,11 @@ class KeyServer
   def delete(key) #O(logn)
     if @redis.exists(key)
       if @redis.del(key)==1
-          @redis.srem('UNBLOCKED',key)
-          @redis.zrem('BLOCKED',key)
+         if @redis.sismember('UNBLOCK',key)
+            @redis.srem('UNBLOCKED',key)
+          else
+            @redis.zrem('BLOCKED',key)
+          end
           "Key deleted"
       else
         "Key unable to delete"
@@ -64,6 +69,7 @@ class KeyServer
   def keep_alive(key) #O(1)
     if @redis.exists(key)
        @redis.setex(key,300,Time.now)
+       @redis.set(key,Time.now)
        "Key life extended"
     else
       "Key not exists"
@@ -78,12 +84,19 @@ class KeyServer
       nil
     else
       temp_key_time = @redis.get(temp_key)
-      if (Time.parse(temp_key_time)-Time.now).abs >=60
+      if temp_key_time.nil?
         @redis.sadd('UNBLOCKED',temp_key)
+        @redis.set(temp_key,Time.now)
         temp_key
       else
-        @redis.zadd('BLOCKED',@redis.get(temp_key).to_f,temp_key) #push again
-        nil
+        if (Time.parse(temp_key_time)-Time.now).abs >=60
+          @redis.sadd('UNBLOCKED',temp_key)
+          @redis.set(key,Time.now)
+          temp_key
+        else
+          @redis.zadd('BLOCKED',@redis.get(temp_key).to_f,temp_key) #push again
+          nil
+        end
       end
     end
 
