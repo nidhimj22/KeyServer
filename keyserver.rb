@@ -35,9 +35,10 @@ class KeyServer
         return "No Key"
       else
         if good?(temp_key)
+          @redis.set(temp_key,Time.now)
+          @redis.zadd('BLOCKED',@redis.get(temp_key).to_f,temp_key)  #push it again 
           return temp_key
         else
-          #@redis.zadd('BLOCKED',@redis.get(temp_key).to_f,temp_key) #push again
           return "No Key"
         end
       end
