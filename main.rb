@@ -3,11 +3,14 @@ $LOAD_PATH << File.dirname(__FILE__)
 require 'rubygems'
 require 'sinatra'
 require 'keyserver'
+
 require 'redis'
 
 set :port, 9830
 
-redis = Redis.new
+redis = Redis.new #(
+  #  :host => "127.0.0.1",
+   # :port => "6379")
 redis.flushall
 key_server = KeyServer.new(redis)
 
@@ -23,11 +26,7 @@ end
 
 
 get '/get' do
-  key = key_server.get
-  if key.nil?
-    "Wait No Key got"
-  end
-    key
+  key_server.get
 end
 
 
