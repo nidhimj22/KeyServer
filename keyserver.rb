@@ -43,7 +43,7 @@ class KeyServer
       end
   else
     @redis.set(key,Time.now)
-    @redis.zadd('BLOCKED',@redis.get(key).to_f,key)  
+    @redis.zadd('BLOCKED',@redis.get(key),key)  
     return key
   end  
   end
