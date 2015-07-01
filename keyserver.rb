@@ -87,13 +87,10 @@ class KeyServer
     end
   end
 
-      
-    
-  
-    def good?(key)
-      time_touched = @redis.get(key)
-      return (Time.parse(time_touched)-Time.now).abs >= 60
-    end
+  def good?(key)
+    time_touched = @redis.get(key)
+    return (Time.parse(time_touched)-Time.now).abs >= 60
+  end
      
 end
 
