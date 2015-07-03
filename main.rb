@@ -3,10 +3,10 @@ $LOAD_PATH << File.dirname(__FILE__)
 require 'rubygems'
 require 'sinatra'
 require 'keyserver'
-
+require 'settings'
 require 'redis'
 
-set :port, 9830
+set :port, Settings::PORT
 
 redis = Redis.new #(
   #  :host => "127.0.0.1",
